@@ -19,6 +19,9 @@ const Core = () => {
   var keyUpPressed = false;
   var keyDownPressed = false;
 
+  var speed = 0.1,
+    radians = 0.025;
+
   document.addEventListener("keydown", function (e) {
     if (e.keyCode === 37) {
       keyLeftPressed = true;
@@ -48,32 +51,62 @@ const Core = () => {
     }
   });
 
-  useFrame(() => {
+  useFrame((props) => {
     // group.current.rotation.y += 0.005;
     if (keyLeftPressed) {
+      console.log("use frame props", props);
       // group.current.rotation.y += 0.01;
-      var yAxis = new THREE.Vector3(0, 1, 0);
-      rotateAroundWorldAxis(group.current, yAxis, 1 * (Math.PI / 180));
+      // var yAxis = new THREE.Vector3(0, 1, 0);
+      // rotateAroundObjectAxis(group.current, yAxis, 1 * (Math.PI / 180));
+      props.camera.matrix.makeRotationY(radians);
+      // props.camera.rotation.setFromRotationMatrix(props.camera.matrix); // r49
+      props.camera.rotation.setEulerFromRotationMatrix(
+        props.camera.matrix,
+        props.camera.eulerOrder
+      ); // dev50
     }
     if (keyRightPressed) {
       // group.current.rotation.y -= 0.01;
-      var yAxis = new THREE.Vector3(0, -1, 0);
-      rotateAroundWorldAxis(group.current, yAxis, 1 * (Math.PI / 180));
+      // var yAxis = new THREE.Vector3(0, -1, 0);
+      // rotateAroundObjectAxis(group.current, yAxis, 1 * (Math.PI / 180));
+      props.camera.matrix.makeRotationY(-radians);
+      props.camera.rotation.setFromRotationMatrix(props.camera.matrix); // r49
     }
     if (keyUpPressed) {
       // group.current.rotation.x -= 0.01;
-      var xAxis = new THREE.Vector3(1, 0, 0);
-      rotateAroundWorldAxis(group.current, xAxis, 1 * (Math.PI / 180));
+      // var xAxis = new THREE.Vector3(1, 0, 0);
+      // rotateAroundObjectAxis(group.current, xAxis, 1 * (Math.PI / 180));
+      props.camera.translateZ(-speed);
     }
     if (keyDownPressed) {
       // group.current.rotation.x += 0.01;
-      var xAxis = new THREE.Vector3(-1, 0, 0);
-      rotateAroundWorldAxis(group.current, xAxis, 1 * (Math.PI / 180));
+      // var xAxis = new THREE.Vector3(-1, 0, 0);
+      // rotateAroundObjectAxis(group.current, xAxis, 1 * (Math.PI / 180));
+      props.camera.translateZ(speed);
     }
   });
 
-  var rotWorldMatrix;
+  // Rotate an object around an arbitrary axis in object space
+  var rotObjectMatrix;
+  const rotateAroundObjectAxis = (object, axis, radians) => {
+    rotObjectMatrix = new THREE.Matrix4();
+    rotObjectMatrix.makeRotationAxis(axis.normalize(), radians);
+
+    // old code for Three.JS pre r54:
+    // object.matrix.multiplySelf(rotObjectMatrix);      // post-multiply
+    // new code for Three.JS r55+:
+    object.matrix.multiply(rotObjectMatrix);
+
+    // old code for Three.js pre r49:
+    // object.rotation.getRotationFromMatrix(object.matrix, object.scale);
+    // old code for Three.js r50-r58:
+    // object.rotation.setEulerFromRotationMatrix(object.matrix);
+    // new code for Three.js r59+:
+    object.rotation.setFromRotationMatrix(object.matrix);
+  };
+
   // Rotate an object around an arbitrary axis in world space
+  var rotWorldMatrix;
   const rotateAroundWorldAxis = (object, axis, radians) => {
     rotWorldMatrix = new THREE.Matrix4();
     rotWorldMatrix.makeRotationAxis(axis.normalize(), radians);
